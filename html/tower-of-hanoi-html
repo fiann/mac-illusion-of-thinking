@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tower of Hanoi Visualizer</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f0f0f0;
+      }
+
+      .container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+
+      .game-area {
+        display: flex;
+        justify-content: space-around;
+        margin: 30px 0;
+        min-height: 300px;
+        background-color: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+      }
+
+      .peg-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+      }
+
+      .peg {
+        width: 10px;
+        height: 200px;
+        background-color: #8b4513;
+        position: relative;
+        margin-top: 20px;
+      }
+
+      .peg-base {
+        width: 150px;
+        height: 20px;
+        background-color: #654321;
+        position: absolute;
+        bottom: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .peg-label {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+
+      .disk {
+        position: absolute;
+        height: 25px;
+        background-color: #4caf50;
+        border: 2px solid #333;
+        border-radius: 5px;
+        transition: all 0.5s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .disk-1 {
+        width: 40px;
+        background-color: #ff6b6b;
+      }
+      .disk-2 {
+        width: 60px;
+        background-color: #4ecdc4;
+      }
+      .disk-3 {
+        width: 80px;
+        background-color: #45b7d1;
+      }
+      .disk-4 {
+        width: 100px;
+        background-color: #96ceb4;
+      }
+      .disk-5 {
+        width: 120px;
+        background-color: #ffeaa7;
+      }
+      .disk-6 {
+        width: 140px;
+        background-color: #dda0dd;
+      }
+      .disk-7 {
+        width: 160px;
+        background-color: #98d8c8;
+      }
+
+      .controls {
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      button {
+        margin: 0 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        transition: background-color 0.3s;
+      }
+
+      button:hover {
+        background-color: #45a049;
+      }
+
+      button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+
+      .move-input {
+        margin: 20px 0;
+        text-align: center;
+      }
+
+      textarea {
+        width: 100%;
+        height: 100px;
+        font-family: monospace;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+
+      .status {
+        text-align: center;
+        margin: 20px 0;
+        font-size: 18px;
+      }
+
+      .error {
+        color: #f44336;
+        font-weight: bold;
+      }
+
+      .success {
+        color: #4caf50;
+        font-weight: bold;
+      }
+
+      .move-counter {
+        text-align: center;
+        font-size: 16px;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Tower of Hanoi Move Visualizer</h1>
+
+      <div class="move-input">
+        <h3>Enter Move Sequence:</h3>
+        <textarea
+          id="moveInput"
+          placeholder="Enter moves as: [[1,0,2], [2,0,1], ...] or paste the full moves = [[...]] format"
+        ></textarea>
+        <br /><br />
+        <button onclick="loadMoves()">Load Moves</button>
+        <button onclick="resetPuzzle()">Reset</button>
+      </div>
+
+      <div class="status" id="status"></div>
+      <div class="move-counter" id="moveCounter">Move: 0 / 0</div>
+
+      <div class="game-area">
+        <div class="peg-container">
+          <div class="peg-label">Peg 0</div>
+          <div class="peg" id="peg0">
+            <div class="peg-base"></div>
+          </div>
+        </div>
+        <div class="peg-container">
+          <div class="peg-label">Peg 1</div>
+          <div class="peg" id="peg1">
+            <div class="peg-base"></div>
+          </div>
+        </div>
+        <div class="peg-container">
+          <div class="peg-label">Peg 2</div>
+          <div class="peg" id="peg2">
+            <div class="peg-base"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button onclick="previousMove()" id="prevBtn" disabled>Previous</button>
+        <button onclick="playPause()" id="playBtn" disabled>Play</button>
+        <button onclick="nextMove()" id="nextBtn" disabled>Next</button>
+        <button onclick="skipToEnd()" id="skipBtn" disabled>Skip to End</button>
+      </div>
+    </div>
+
+    <script>
+      let pegs = [[], [], []];
+      let moves = [];
+      let currentMoveIndex = 0;
+      let isPlaying = false;
+      let playInterval;
+      let numDisks = 0;
+
+      function initializePuzzle(n) {
+        numDisks = n;
+        pegs = [[], [], []];
+        for (let i = n; i >= 1; i--) {
+          pegs[0].push(i);
+        }
+        currentMoveIndex = 0;
+        renderPegs();
+        updateStatus("Puzzle initialized with " + n + " disks");
+      }
+
+      function renderPegs() {
+        for (let i = 0; i < 3; i++) {
+          const pegElement = document.getElementById("peg" + i);
+          // Remove all disks except the base
+          const disks = pegElement.querySelectorAll(".disk");
+          disks.forEach((disk) => disk.remove());
+
+          // Add disks
+          pegs[i].forEach((disk, index) => {
+            const diskElement = document.createElement("div");
+            diskElement.className = "disk disk-" + disk;
+            diskElement.textContent = disk;
+            diskElement.style.bottom = index * 30 + "px";
+            diskElement.style.left = "50%";
+            diskElement.style.transform = "translateX(-50%)";
+            pegElement.appendChild(diskElement);
+          });
+        }
+
+        document.getElementById(
+          "moveCounter"
+        ).textContent = `Move: ${currentMoveIndex} / ${moves.length}`;
+      }
+
+      function isValidMove(disk, from, to) {
+        // Check if the disk is on top of the source peg
+        if (pegs[from].length === 0 || pegs[from][pegs[from].length - 1] !== disk) {
+          return false;
+        }
+
+        // Check if we can place it on the destination peg
+        if (pegs[to].length > 0 && pegs[to][pegs[to].length - 1] < disk) {
+          return false;
+        }
+
+        return true;
+      }
+
+      function executeMove(moveIndex) {
+        if (moveIndex < 0 || moveIndex >= moves.length) return false;
+
+        const move = moves[moveIndex];
+        const [disk, from, to] = move;
+
+        if (!isValidMove(disk, from, to)) {
+          updateStatus(
+            `Error at move ${
+              moveIndex + 1
+            }: Cannot move disk ${disk} from peg ${from} to peg ${to}`,
+            "error"
+          );
+          return false;
+        }
+
+        pegs[from].pop();
+        pegs[to].push(disk);
+        return true;
+      }
+
+      function nextMove() {
+        if (currentMoveIndex >= moves.length) {
+          checkWinCondition();
+          return;
+        }
+
+        if (executeMove(currentMoveIndex)) {
+          currentMoveIndex++;
+          renderPegs();
+
+          if (currentMoveIndex >= moves.length) {
+            checkWinCondition();
+          }
+        } else {
+          stopPlaying();
+        }
+
+        updateButtons();
+      }
+
+      function previousMove() {
+        if (currentMoveIndex === 0) return;
+
+        // Reset and replay up to previous move
+        initializePuzzle(numDisks);
+        for (let i = 0; i < currentMoveIndex - 1; i++) {
+          executeMove(i);
+        }
+        currentMoveIndex--;
+        renderPegs();
+        updateButtons();
+        updateStatus("");
+      }
+
+      function playPause() {
+        if (isPlaying) {
+          stopPlaying();
+        } else {
+          isPlaying = true;
+          document.getElementById("playBtn").textContent = "Pause";
+          playInterval = setInterval(() => {
+            nextMove();
+            if (
+              currentMoveIndex >= moves.length ||
+              document.getElementById("status").className === "status error"
+            ) {
+              stopPlaying();
+            }
+          }, 1000);
+        }
+      }
+
+      function stopPlaying() {
+        isPlaying = false;
+        clearInterval(playInterval);
+        document.getElementById("playBtn").textContent = "Play";
+      }
+
+      function skipToEnd() {
+        stopPlaying();
+        while (currentMoveIndex < moves.length) {
+          if (!executeMove(currentMoveIndex)) {
+            break;
+          }
+          currentMoveIndex++;
+        }
+        renderPegs();
+        updateButtons();
+        if (currentMoveIndex >= moves.length) {
+          checkWinCondition();
+        }
+      }
+
+      function checkWinCondition() {
+        if (pegs[2].length === numDisks) {
+          updateStatus("Success! All disks moved to peg 2!", "success");
+        } else {
+          updateStatus("Sequence completed but puzzle not solved", "error");
+        }
+      }
+
+      function updateButtons() {
+        document.getElementById("prevBtn").disabled = currentMoveIndex === 0;
+        document.getElementById("nextBtn").disabled = currentMoveIndex >= moves.length;
+        document.getElementById("playBtn").disabled = currentMoveIndex >= moves.length;
+        document.getElementById("skipBtn").disabled = currentMoveIndex >= moves.length;
+      }
+
+      function updateStatus(message, className = "") {
+        const statusElement = document.getElementById("status");
+        statusElement.textContent = message;
+        statusElement.className = "status " + className;
+      }
+
+      function loadMoves() {
+        const input = document.getElementById("moveInput").value.trim();
+
+        try {
+          // Extract the array from the input
+          let arrayMatch = input.match(/\[\s*\[[\s\S]*\]\s*\]/);
+          if (!arrayMatch) {
+            throw new Error("Invalid format. Please enter moves as [[1,0,2], [2,0,1], ...]");
+          }
+
+          moves = JSON.parse(arrayMatch[0]);
+
+          // Validate moves format
+          if (!Array.isArray(moves) || moves.length === 0) {
+            throw new Error("Moves must be a non-empty array");
+          }
+
+          // Find the maximum disk number to initialize the puzzle
+          let maxDisk = 0;
+          moves.forEach((move) => {
+            if (!Array.isArray(move) || move.length !== 3) {
+              throw new Error("Each move must be an array of 3 numbers: [disk, from, to]");
+            }
+            maxDisk = Math.max(maxDisk, move[0]);
+          });
+
+          initializePuzzle(maxDisk);
+          updateButtons();
+          updateStatus(`Loaded ${moves.length} moves for ${maxDisk} disks`);
+        } catch (e) {
+          updateStatus("Error parsing moves: " + e.message, "error");
+        }
+      }
+
+      function resetPuzzle() {
+        stopPlaying();
+        if (numDisks > 0) {
+          initializePuzzle(numDisks);
+          updateButtons();
+        }
+      }
+
+      // Load the example moves on page load
+      window.onload = function () {
+        document.getElementById("moveInput").value = `moves = [
+[1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2], [4, 0, 1],
+[1, 2, 1], [2, 2, 0], [1, 1, 0], [3, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 1], [5, 0, 2],
+[1, 1, 0], [2, 1, 2], [1, 0, 2], [3, 1, 0], [1, 2, 1], [2, 2, 0], [1, 1, 0], [4, 1, 2],
+[1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2], [6, 0, 1],
+[1, 2, 1], [2, 2, 0], [1, 1, 0], [3, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 1], [4, 2, 0],
+[1, 1, 0], [2, 1, 2], [1, 0, 2], [3, 1, 0], [1, 2, 1], [2, 2, 0], [1, 1, 0], [5, 2, 1],
+[1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2], [4, 0, 1],
+[1, 2, 1], [2, 2, 0], [1, 1, 0], [3, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 1], [7, 0, 2],
+[1, 1, 0], [2, 1, 2], [1, 0, 2], [3, 1, 0], [1, 2, 1], [2, 2, 0], [1, 1, 0], [4, 1, 2],
+[1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2], [5, 1, 0],
+[1, 2, 1], [2, 2, 0], [1, 1, 0], [3, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 1], [4, 2, 0],
+[1, 1, 0], [2, 1, 2], [1, 0, 2], [3, 1, 0], [1, 2, 1], [2, 2, 0], [1, 1, 0], [6, 1, 2],
+[1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2], [4, 0, 1],
+[1, 2, 1], [2, 2, 0], [1, 1, 0], [3, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 1], [5, 0, 2],
+[1, 1, 0], [2, 1, 2], [1, 0, 2], [3, 1, 0], [1, 2, 1], [2, 2, 0], [1, 1, 0], [4, 1, 2],
+[1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2]
+]`;
+      };
+    </script>
+  </body>
+</html>
