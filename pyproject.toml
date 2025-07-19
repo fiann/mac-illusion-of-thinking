@@ -1,7 +1,7 @@
 [project]
-name = "tower-of-hanoi-experiment"
+name = "mac-illusion-of-thinking"
 version = "0.1.0"
-description = "Replicate Tower of Hanoi experiments with Claude API"
+description = "Replicate Illusion of Thinking experiments with Claude API"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
