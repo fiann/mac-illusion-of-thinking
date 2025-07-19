@@ -1,0 +1,21 @@
+{
+  "valid": true,
+  "solved": true,
+  "errors": [],
+  "final_state": [
+    [],
+    [],
+    [
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1
+    ]
+  ],
+  "num_moves": 511
+}

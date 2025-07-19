@@ -1,0 +1,9 @@
+{
+  "total_runs": 10,
+  "successful_api_calls": 10,
+  "moves_extracted": 10,
+  "valid_solutions": 6,
+  "puzzles_solved": 6,
+  "average_moves": 511.0,
+  "optimal_moves": 511
+}

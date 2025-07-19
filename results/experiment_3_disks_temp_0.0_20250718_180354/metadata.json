@@ -1,0 +1,7 @@
+{
+  "num_disks": 3,
+  "repetitions": 3,
+  "temperature": 0.0,
+  "model": "claude-3-5-sonnet-20241022",
+  "timestamp": "20250718_180354"
+}

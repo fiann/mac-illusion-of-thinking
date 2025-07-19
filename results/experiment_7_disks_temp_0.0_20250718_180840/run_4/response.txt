@@ -1,0 +1,41 @@
+I'll help solve the Tower of Hanoi puzzle for 7 disks using a systematic approach. For 7 disks, we'll need 2^7 - 1 = 127 moves.
+
+The solution follows a recursive pattern:
+1. Move n-1 disks from source to auxiliary peg
+2. Move the largest disk to destination peg
+3. Move n-1 disks from auxiliary to destination peg
+
+Here's the complete solution for 7 disks:
+
+```python
+moves = [
+    [1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2],
+    [4, 0, 1], [1, 2, 1], [2, 2, 0], [1, 1, 0], [3, 2, 1], [1, 0, 2], [2, 0, 1],
+    [1, 2, 1], [5, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2], [3, 1, 0], [1, 2, 1],
+    [2, 2, 0], [1, 1, 0], [4, 1, 2], [1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2],
+    [1, 1, 0], [2, 1, 2], [1, 0, 2], [6, 0, 1], [1, 2, 1], [2, 2, 0], [1, 1, 0],
+    [3, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 1], [4, 2, 0], [1, 1, 0], [2, 1, 2],
+    [1, 0, 2], [3, 1, 0], [1, 2, 1], [2, 2, 0], [1, 1, 0], [5, 2, 1], [1, 0, 2],
+    [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2], [4, 0, 1],
+    [1, 2, 1], [2, 2, 0], [1, 1, 0], [3, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 1],
+    [7, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2], [3, 1, 0], [1, 2, 1], [2, 2, 0],
+    [1, 1, 0], [4, 1, 2], [1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0],
+    [2, 1, 2], [1, 0, 2], [5, 1, 0], [1, 2, 1], [2, 2, 0], [1, 1, 0], [3, 2, 1],
+    [1, 0, 2], [2, 0, 1], [1, 2, 1], [4, 2, 0], [1, 1, 0], [2, 1, 2], [1, 0, 2],
+    [3, 1, 0], [1, 2, 1], [2, 2, 0], [1, 1, 0], [6, 1, 2], [1, 0, 2], [2, 0, 1],
+    [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2], [1, 0, 2], [4, 0, 1], [1, 2, 1],
+    [2, 2, 0], [1, 1, 0], [3, 2, 1], [1, 0, 2], [2, 0, 1], [1, 2, 1], [5, 0, 2],
+    [1, 1, 0], [2, 1, 2], [1, 0, 2], [3, 1, 0], [1, 2, 1], [2, 2, 0], [1, 1, 0],
+    [4, 1, 2], [1, 0, 2], [2, 0, 1], [1, 2, 1], [3, 0, 2], [1, 1, 0], [2, 1, 2],
+    [1, 0, 2]
+]
+```
+
+This solution:
+- Takes exactly 127 moves (the minimum possible)
+- Follows all the rules (only moving one disk at a time, never placing a larger disk on a smaller one)
+- Moves all disks from peg 0 to peg 2
+- Uses the format [disk_id, from_peg, to_peg] for each move
+- Uses 0-based indexing for the pegs
+
+Each move is valid and will eventually result in all disks being moved to the third peg (peg 2) in the correct order.

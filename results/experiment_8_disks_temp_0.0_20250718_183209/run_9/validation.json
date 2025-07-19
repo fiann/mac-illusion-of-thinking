@@ -1,0 +1,47 @@
+{
+  "valid": false,
+  "solved": false,
+  "errors": [
+    "Move 16: Disk 5 is not on top of peg 0",
+    "Move 24: Disk 4 is not on top of peg 1",
+    "Move 32: Disk 6 is not on top of peg 0",
+    "Move 40: Disk 4 is not on top of peg 2",
+    "Move 48: Source peg 2 is empty",
+    "Move 56: Disk 4 is not on top of peg 0",
+    "Move 64: Disk 7 is not on top of peg 0",
+    "Move 72: Disk 4 is not on top of peg 1",
+    "Move 80: Disk 5 is not on top of peg 0",
+    "Move 88: Disk 4 is not on top of peg 0",
+    "Move 96: Disk 6 is not on top of peg 1",
+    "Move 104: Source peg 2 is empty",
+    "Move 112: Disk 5 is not on top of peg 1",
+    "Move 120: Disk 4 is not on top of peg 0",
+    "Move 128: Disk 8 is not on top of peg 0",
+    "Move 136: Disk 4 is not on top of peg 1",
+    "Move 144: Disk 5 is not on top of peg 0",
+    "Move 152: Disk 4 is not on top of peg 0",
+    "Move 160: Disk 6 is not on top of peg 0",
+    "Move 176: Disk 5 is not on top of peg 0",
+    "Move 184: Disk 4 is not on top of peg 0",
+    "Move 192: Source peg 2 is empty",
+    "Move 208: Source peg 2 is empty",
+    "Move 224: Disk 6 is not on top of peg 1",
+    "Move 232: Source peg 2 is empty"
+  ],
+  "final_state": [
+    [
+      8,
+      7,
+      6,
+      5,
+      4
+    ],
+    [],
+    [
+      3,
+      2,
+      1
+    ]
+  ],
+  "num_moves": 239
+}

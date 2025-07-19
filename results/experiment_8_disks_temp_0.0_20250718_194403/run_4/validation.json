@@ -1,0 +1,23 @@
+{
+  "valid": false,
+  "solved": false,
+  "errors": [
+    "Move 128: Cannot place disk 8 on smaller disk 1"
+  ],
+  "final_state": [
+    [
+      8
+    ],
+    [
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1
+    ],
+    []
+  ],
+  "num_moves": 255
+}
