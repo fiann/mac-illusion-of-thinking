@@ -16,11 +16,17 @@ load_dotenv()
 
 
 class TowerOfHanoiExperiment:
-    def __init__(self, api_key: str, model: str = "claude-3-5-sonnet-20241022"):
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "claude-3-7-sonnet-latest",
+        include_hint: bool = False,
+    ):
         self.client = AsyncAnthropic(api_key=api_key)
         self.model = model
+        self.include_hint = include_hint
         self.prompt_template = self._load_prompt_template()
-    
+
     def _load_prompt_template(self) -> str:
         prompt_path = Path("tower-of-hanoi-prompt.md")
         if prompt_path.exists():
@@ -54,100 +60,109 @@ Requirements:
 - The positions are 0-indexed (the leftmost peg is 0).
 - Ensure your final answer includes the complete list of moves in the format:
   moves = [[disk id, from peg, to peg], ...]
+- IMPORTANT: Always provide the COMPLETE list of moves, regardless of length. Do not ask for confirmation or offer to provide the full list - just include all moves in your solution.
 """
-    
+
     def _build_prompt(self, num_disks: int) -> str:
         prompt = self.prompt_template
         initial_state = [list(range(num_disks, 0, -1)), [], []]
         prompt += f"\n\nNow solve for {num_disks} disks. The initial state is {initial_state}."
+
+        if self.include_hint:
+            expected_moves = 2**num_disks - 1
+            prompt += f"\nNote: The solution requires {expected_moves} moves."
+
         return prompt
-    
+
     async def run_single_experiment(self, num_disks: int, temperature: float) -> Dict:
         prompt = self._build_prompt(num_disks)
-        
+
         try:
+            # Add a small delay to avoid rate limiting
+            await asyncio.sleep(1.0)
+
             response = await self.client.messages.create(
                 model=self.model,
                 max_tokens=8192,
                 temperature=temperature,
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
             )
-            
+
             content = response.content[0].text if response.content else ""
-            
+
             return {
                 "success": True,
                 "response": content,
                 "usage": {
                     "input_tokens": response.usage.input_tokens,
-                    "output_tokens": response.usage.output_tokens
-                }
+                    "output_tokens": response.usage.output_tokens,
+                },
             }
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "response": ""
-            }
-    
+            return {"success": False, "error": str(e), "response": "", "prompt": prompt}
+
     def extract_moves(self, response: str) -> Optional[List[List[int]]]:
         patterns = [
-            r'moves\s*=\s*\[\s*((?:\[[^\]]+\]\s*,?\s*)+)\]',
-            r'```\s*moves\s*=\s*\[\s*((?:\[[^\]]+\]\s*,?\s*)+)\]\s*```',
-            r'Final answer:\s*moves\s*=\s*\[\s*((?:\[[^\]]+\]\s*,?\s*)+)\]'
+            r"moves\s*=\s*\[\s*((?:\[[^\]]+\]\s*,?\s*)+)\]",
+            r"```\s*moves\s*=\s*\[\s*((?:\[[^\]]+\]\s*,?\s*)+)\]\s*```",
+            r"Final answer:\s*moves\s*=\s*\[\s*((?:\[[^\]]+\]\s*,?\s*)+)\]",
         ]
-        
+
         for pattern in patterns:
             match = re.search(pattern, response, re.DOTALL | re.IGNORECASE)
             if match:
                 try:
                     moves_str = f"[{match.group(1)}]"
-                    moves_str = re.sub(r'\s+', ' ', moves_str)
+                    moves_str = re.sub(r"\s+", " ", moves_str)
                     moves = eval(moves_str)
                     return moves
                 except:
                     continue
-        
+
         return None
-    
+
     def validate_moves(self, moves: List[List[int]], num_disks: int) -> Dict:
         pegs = [list(range(num_disks, 0, -1)), [], []]
         errors = []
-        
+
         for i, move in enumerate(moves):
             if len(move) != 3:
                 errors.append(f"Move {i+1}: Invalid format {move}")
                 continue
-            
+
             disk, from_peg, to_peg = move
-            
+
             if from_peg not in [0, 1, 2] or to_peg not in [0, 1, 2]:
                 errors.append(f"Move {i+1}: Invalid peg number")
                 continue
-            
+
             if not pegs[from_peg]:
                 errors.append(f"Move {i+1}: Source peg {from_peg} is empty")
                 continue
-            
+
             if pegs[from_peg][-1] != disk:
-                errors.append(f"Move {i+1}: Disk {disk} is not on top of peg {from_peg}")
+                errors.append(
+                    f"Move {i+1}: Disk {disk} is not on top of peg {from_peg}"
+                )
                 continue
-            
+
             if pegs[to_peg] and pegs[to_peg][-1] < disk:
-                errors.append(f"Move {i+1}: Cannot place disk {disk} on smaller disk {pegs[to_peg][-1]}")
+                errors.append(
+                    f"Move {i+1}: Cannot place disk {disk} on smaller disk {pegs[to_peg][-1]}"
+                )
                 continue
-            
+
             pegs[from_peg].pop()
             pegs[to_peg].append(disk)
-        
+
         is_solved = pegs[2] == list(range(num_disks, 0, -1))
-        
+
         return {
             "valid": len(errors) == 0,
             "solved": is_solved,
             "errors": errors,
             "final_state": pegs,
-            "num_moves": len(moves)
+            "num_moves": len(moves),
         }
 
 
@@ -156,99 +171,168 @@ async def run_experiment(
     repetitions: int,
     temperature: float,
     model: str,
-    output_dir: Path
+    output_dir: Path,
+    include_hint: bool,
 ):
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         raise ValueError("ANTHROPIC_API_KEY not found in environment variables")
-    
-    experiment = TowerOfHanoiExperiment(api_key, model)
-    
+
+    experiment = TowerOfHanoiExperiment(api_key, model, include_hint)
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    exp_dir = output_dir / f"experiment_{num_disks}_disks_temp_{temperature}_{timestamp}"
+    exp_dir = (
+        output_dir / f"experiment_{num_disks}_disks_temp_{temperature}_{timestamp}"
+    )
     exp_dir.mkdir(parents=True, exist_ok=True)
-    
-    metadata = {
-        "num_disks": num_disks,
-        "repetitions": repetitions,
-        "temperature": temperature,
-        "model": model,
-        "timestamp": timestamp
-    }
-    
-    with open(exp_dir / "metadata.json", "w") as f:
-        json.dump(metadata, f, indent=2)
-    
+
+    # Generate the prompt to include in metadata
+    sample_prompt = experiment._build_prompt(num_disks)
+
+    # Generate hint text if enabled
+    hint_text = ""
+    if include_hint:
+        expected_moves = 2**num_disks - 1
+        hint_text = f"Note: The solution requires {expected_moves} moves."
+
+    # Metadata will be included in summary.json instead of separate file
+
     results = []
-    
+
     async def run_single(run_id: int):
         run_dir = exp_dir / f"run_{run_id}"
         run_dir.mkdir(exist_ok=True)
-        
+
         result = await experiment.run_single_experiment(num_disks, temperature)
-        
+
         with open(run_dir / "response.txt", "w") as f:
             f.write(result["response"])
-        
+
+        # Save error info if request failed
+        if not result["success"]:
+            with open(run_dir / "error.json", "w") as f:
+                json.dump(
+                    {
+                        "error": result.get("error", "Unknown error"),
+                        "prompt": result.get("prompt", ""),
+                    },
+                    f,
+                    indent=2,
+                )
+
         if result["success"]:
             moves = experiment.extract_moves(result["response"])
-            
+
             if moves:
                 with open(run_dir / "moves.json", "w") as f:
                     json.dump(moves, f)
-                
+
                 validation = experiment.validate_moves(moves, num_disks)
                 with open(run_dir / "validation.json", "w") as f:
                     json.dump(validation, f, indent=2)
-                
+
                 result["moves"] = moves
                 result["validation"] = validation
             else:
                 result["moves"] = None
-                result["validation"] = {"valid": False, "errors": ["Could not extract moves"]}
-        
+                result["validation"] = {
+                    "valid": False,
+                    "errors": ["Could not extract moves"],
+                }
+
         return run_id, result
-    
+
     tasks = [run_single(i) for i in range(1, repetitions + 1)]
-    
+
     for task in tqdm.as_completed(tasks, desc="Running experiments"):
         run_id, result = await task
         results.append((run_id, result))
-    
+
     results.sort(key=lambda x: x[0])
-    
+
+    # Create runs list with valid_solution and number of moves for each run
+    runs_data = []
+    for run_id, result in results:
+        moves = result.get("moves", None)
+        run_info = {
+            "run_id": run_id,
+            "valid_solution": result.get("validation", {}).get("valid", False)
+            and result.get("validation", {}).get("solved", False),
+            "num_moves": len(moves) if moves is not None else None,
+        }
+        runs_data.append(run_info)
+
     summary = {
+        # Metadata fields
+        "num_disks": num_disks,
+        "repetitions": repetitions,
+        "temperature": temperature,
+        "model": model,
+        "include_hint": include_hint,
+        "hint": hint_text,
+        "timestamp": timestamp,
+        "prompt": sample_prompt,
+        # Summary statistics
         "total_runs": repetitions,
         "successful_api_calls": sum(1 for _, r in results if r["success"]),
         "moves_extracted": sum(1 for _, r in results if r.get("moves") is not None),
-        "valid_solutions": sum(1 for _, r in results if r.get("validation", {}).get("valid", False)),
-        "puzzles_solved": sum(1 for _, r in results if r.get("validation", {}).get("solved", False)),
-        "average_moves": sum(len(r.get("moves", [])) for _, r in results if r.get("moves")) / max(1, sum(1 for _, r in results if r.get("moves"))),
-        "optimal_moves": 2**num_disks - 1
+        "valid_solutions": sum(
+            1 for _, r in results if r.get("validation", {}).get("valid", False)
+        ),
+        "puzzles_solved": sum(
+            1 for _, r in results if r.get("validation", {}).get("solved", False)
+        ),
+        "average_moves": sum(
+            len(r.get("moves", [])) for _, r in results if r.get("moves")
+        )
+        / max(1, sum(1 for _, r in results if r.get("moves"))),
+        "optimal_moves": 2**num_disks - 1,
+        # Individual run details
+        "runs": runs_data,
     }
-    
+
     with open(exp_dir / "summary.json", "w") as f:
         json.dump(summary, f, indent=2)
-    
+
     print(f"\nExperiment completed!")
     print(f"Results saved to: {exp_dir}")
     print(f"\nSummary:")
-    print(f"  - Successful API calls: {summary['successful_api_calls']}/{summary['total_runs']}")
+    print(
+        f"  - Successful API calls: {summary['successful_api_calls']}/{summary['total_runs']}"
+    )
     print(f"  - Moves extracted: {summary['moves_extracted']}/{summary['total_runs']}")
     print(f"  - Valid solutions: {summary['valid_solutions']}/{summary['total_runs']}")
     print(f"  - Puzzles solved: {summary['puzzles_solved']}/{summary['total_runs']}")
-    print(f"  - Average moves: {summary['average_moves']:.1f} (optimal: {summary['optimal_moves']})")
+    print(
+        f"  - Average moves: {summary['average_moves']:.1f} (optimal: {summary['optimal_moves']})"
+    )
 
 
 @click.command()
-@click.option('--disks', default=7, help='Number of disks')
-@click.option('--repetitions', default=10, help='Number of times to run the experiment')
-@click.option('--temperature', default=0.0, help='LLM temperature setting')
-@click.option('--model', default='claude-3-5-sonnet-20241022', help='Claude model to use')
-@click.option('--output-dir', default='./results', type=click.Path(), help='Directory for results')
-def main(disks: int, repetitions: int, temperature: float, model: str, output_dir: str):
+@click.option("--disks", default=7, help="Number of disks")
+@click.option("--repetitions", default=10, help="Number of times to run the experiment")
+@click.option("--temperature", default=0.0, help="LLM temperature setting")
+@click.option("--model", default="claude-3-7-sonnet-latest", help="Claude model to use")
+@click.option(
+    "--output-dir", default="./results", type=click.Path(), help="Directory for results"
+)
+@click.option(
+    "--include-hint", is_flag=True, help="Include hint about number of moves in prompt"
+)
+def main(
+    disks: int,
+    repetitions: int,
+    temperature: float,
+    model: str,
+    output_dir: str,
+    include_hint: bool,
+):
     output_path = Path(output_dir)
-    asyncio.run(run_experiment(disks, repetitions, temperature, model, output_path))
+    asyncio.run(
+        run_experiment(
+            disks, repetitions, temperature, model, output_path, include_hint
+        )
+    )
 
 
 if __name__ == "__main__":
